@@ -22,11 +22,24 @@ mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlP
 
 //Create a new user.
   //Receive data from post.
+  //Make sure username is not taken.
   //Save to database.
 
 app.post('/api/exercise/new-user', (req, res) => {
   var userName  = req.body.username
-  console.log(userName)
+  var numbersAndLetters = /^[a-zA-Z0-9]+$/
+
+  if (numbersAndLetters.test(userName)) {
+    console.log(userName)
+    var newUser = new modelUser(
+      {
+        username: userName
+      }
+    )
+  } else {
+    res.json({"error":"Username can only use letters and numbers."})
+  }
+  
 })
 
 //Add exercises
