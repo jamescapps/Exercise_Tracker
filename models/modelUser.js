@@ -7,9 +7,9 @@ const userSchema = new Schema(
         exerciseData:
         [
             {
-                "description": String,
-                "duration": String,
-                "date": { type:String, default: Date.now }
+                description: String,
+                duration: Number,
+                date: { type:String, default: Date.now }
             }
         ]
     }

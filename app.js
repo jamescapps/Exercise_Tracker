@@ -22,32 +22,68 @@ mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlP
 
 //Create a new user.
   //Receive data from post.
+  //Only allow numbers and letters for a username.
   //Make sure username is not taken.
   //Save to database.
 
 app.post('/api/exercise/new-user', (req, res) => {
-  var userName  = req.body.username
+  var { username } = req.body
   var numbersAndLetters = /^[a-zA-Z0-9]+$/
 
-  if (numbersAndLetters.test(userName)) {
-    console.log(userName)
-    var newUser = new modelUser(
-      {
-        username: userName
-      }
-    )
+  if (numbersAndLetters.test(username)) {
+    console.log(username)
+    modelUser.findOne({username: username}, (err, result) => {
+      if (err) {
+        return res.send("Error reading database")
+      } else if (result) {
+        return res.send("Username taken")
+      } else {
+        var newUser = new modelUser(
+          {
+            username: username
+          }
+        )
+        newUser.save(err => {
+          if (err) {
+            return res.send("Error saving to database")
+          }
+          return res.json(newUser)
+        })
+      } 
+    })
   } else {
-    res.json({"error":"Username can only use letters and numbers."})
-  }
-  
+    return res.send("Username can only use numbers and/or letters")
+  }    
 })
 
 //Add exercises
+  //Make sure all required fields are submitted.
   //Match username/id.
   //Receive data from description.
   //Receive data from duration.
   //Receive data from date.  (Current date if blank.)
 
+  app.post('/api/exercise/add', (req, res) => {
+    var { userId } = req.body
+    var { description } = req.body
+    var { duration } = req.body
+    var { date } = req.body.date
+
+    if (userId === "" || description === "" || duration === "") {
+      res.send("Please enter the required fields")
+    } else {
+      modelUser.findOne({username: userId}, (err, result) => {
+        if (err) {
+          res.send("Error contacting database")
+        } else if (!result){
+          res.send("userId not found")
+        } else {
+          res.send("userId found!")
+          //Need to save input to the user in the database.
+        }
+      })
+    }
+  })
 //Get array of users.
 
 //Retrieve excercise logs of a user, including total exercise count.
