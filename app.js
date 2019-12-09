@@ -53,7 +53,7 @@ app.post('/api/exercise/new-user', (req, res) => {
       } 
     })
   } else {
-    return res.send("Username can only use numbers and/or letters")
+    return res.send("Username can only use numbers and/or letters with no spaces.")
   }    
 })
 
@@ -74,19 +74,28 @@ app.post('/api/exercise/new-user', (req, res) => {
     if (userId === "" || description === "" || duration === "") {
       res.send("Please enter the required fields")
     } else {
-      modelUser.findOne({username: userId}, (err, result) => {
+      modelUser.findOne({_id: userId}, (err, result) => {
         if (err) {
           res.send("Error contacting database")
         } else if (!result){
           res.send("userId not found")
         } else {
           var dateFormat = /^\d{4}-\d{2}-\d{2}$/
-          if (dateFormat.test(date) || date == "") {
-            var currentDate = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60*1000).toISOString().substr(0,19).replace('T', ' ')
+          var utcDate = new Date(date)
+          var correctDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000).toDateString()
+          var currentDate = new Date().toDateString()
+          /*if (date === "") {
+            finalDate = currentDate
+          } else {
+            finalDate = correctDate
+          }*/
+          //Probably a better way to do input the different possibilities for dates.
+          //I would also like to return the username and id along with the new exercise.
+          if (dateFormat.test(date)) {
             var newExercise = {
-              description : description,
-              duration : duration,
-              date: date || currentDate.split(' ')[0]
+              description: description,
+              duration: duration,
+              date: correctDate 
             }
             result.exerciseData.push(newExercise)
             result.save((err) => {
@@ -94,7 +103,20 @@ app.post('/api/exercise/new-user', (req, res) => {
                 return res.send('Error saving to database')
               }
             })
-          return res.json(result)
+          return res.send({username: result.username, _id: result.id, exerciseData: newExercise})
+          } else if (date === ""){
+            var newExercise = {
+              description: description,
+              duration: duration,
+              date: currentDate
+            }
+            result.exerciseData.push(newExercise)
+            result.save((err) => {
+              if (err) {
+                return res.send('Error saving to database')
+              }
+            })
+          return res.send({username: result.username, _id: result.id, exerciseData: newExercise})
           } else {
             res.send("Please enter a valid date in the format yyyy-mm-dd.")
           }
@@ -105,11 +127,48 @@ app.post('/api/exercise/new-user', (req, res) => {
 
 
   //Get array of users.
+    //Access database.
+    //Create empty array.
+    //Loop through database and access usernames.
+    //Push usernames to empty array.
+    //Send array to view.
+
+  app.get('/api/exercise/users', (req, res) => {
+   modelUser.find((err, result) => {
+    if (err) {
+      res.send("Error contacting database")
+    } else {
+      userList =[]
+      for (var i = 0; i< result.length; i++) {
+        var allUsers = (
+          {
+            username: result[i].username
+          }
+        )
+        userList.push(allUsers)
+      }
+      res.send(userList)
+    }
+  })
+})
 
 //Retrieve excercise logs of a user, including total exercise count.
+  //Match userId to the id in the database.
+  //Display exercise data and count.
+app.get('/api/exercise/log?:userId', (req, res) => {
+  modelUser.findOne({_id: req.query.userId}, (err, result) => {
+    if (err) {
+      res.send("Error contacting database")
+    } else if (!result){
+      res.send("userId not found")
+    } else {
+      res.send({username: result.username, _id: result.id, exerciseData: result.exerciseData, count:result.exerciseData.length})
+    }
+  })
+})
 
 //Retrieve partial log of any users based on date input from and to.
-
+//Should be able to combine with above.  If date parameters are present, display exerciseData for that time period, otherwise display all.
 
 app.listen(process.env.PORT || 3000, () => {
     console.log("Your app is working!")
