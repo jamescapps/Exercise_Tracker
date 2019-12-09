@@ -9,7 +9,7 @@ const userSchema = new Schema(
             {
                 description: String,
                 duration: Number,
-                date: { type:String, default: Date.now }
+                date: { type:String}
             }
         ]
     }

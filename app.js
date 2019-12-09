@@ -18,7 +18,8 @@ app.get('/', (req, res) => {
 })
 
 //Connect to database.
-mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlParser: true })
+//mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlParser: true })
+mongoose.connect('mongodb://localhost/exercise_tracker', { useUnifiedTopology: true, useNewUrlParser: true }) 
 
 //Create a new user.
   //Receive data from post.
@@ -61,13 +62,14 @@ app.post('/api/exercise/new-user', (req, res) => {
   //Match username/id.
   //Receive data from description.
   //Receive data from duration.
-  //Receive data from date.  (Current date if blank.)
+  //Receive data from date.  (Current date if blank.) Make sure date is formatted yyyy-mm-dd
+  //Save data.
 
   app.post('/api/exercise/add', (req, res) => {
     var { userId } = req.body
     var { description } = req.body
     var { duration } = req.body
-    var { date } = req.body.date
+    var { date } = req.body
 
     if (userId === "" || description === "" || duration === "") {
       res.send("Please enter the required fields")
@@ -78,13 +80,31 @@ app.post('/api/exercise/new-user', (req, res) => {
         } else if (!result){
           res.send("userId not found")
         } else {
-          res.send("userId found!")
-          //Need to save input to the user in the database.
+          var dateFormat = /^\d{4}-\d{2}-\d{2}$/
+          if (dateFormat.test(date) || date == "") {
+            var currentDate = new Date(new Date().getTime() - new Date().getTimezoneOffset()*60*1000).toISOString().substr(0,19).replace('T', ' ')
+            var newExercise = {
+              description : description,
+              duration : duration,
+              date: date || currentDate.split(' ')[0]
+            }
+            result.exerciseData.push(newExercise)
+            result.save((err) => {
+              if (err) {
+                return res.send('Error saving to database')
+              }
+            })
+          return res.json(result)
+          } else {
+            res.send("Please enter a valid date in the format yyyy-mm-dd.")
+          }
         }
       })
     }
   })
-//Get array of users.
+
+
+  //Get array of users.
 
 //Retrieve excercise logs of a user, including total exercise count.
 
