@@ -21,6 +21,8 @@ app.get('/', (req, res) => {
 //mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlParser: true })
 mongoose.connect('mongodb://localhost/exercise_tracker', { useUnifiedTopology: true, useNewUrlParser: true }) 
 
+
+var dateFormat = /^\d{4}-\d{2}-\d{2}$/
 //Create a new user.
   //Receive data from post.
   //Only allow numbers and letters for a username.
@@ -80,7 +82,7 @@ app.post('/api/exercise/new-user', (req, res) => {
         } else if (!result){
           res.send("userId not found")
         } else {
-          var dateFormat = /^\d{4}-\d{2}-\d{2}$/
+          //var dateFormat = /^\d{4}-\d{2}-\d{2}$/
           var utcDate = new Date(date)
           var correctDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000).toDateString()
           var currentDate = new Date().toDateString()
@@ -155,14 +157,37 @@ app.post('/api/exercise/new-user', (req, res) => {
 //Retrieve excercise logs of a user, including total exercise count.
   //Match userId to the id in the database.
   //Display exercise data and count.
-app.get('/api/exercise/log?:userId', (req, res) => {
-  modelUser.findOne({_id: req.query.userId}, (err, result) => {
+  ///api/exercise/log/{userId}?from=[dateFrom]&to=[dateTo]&limit=[limit]
+app.get(/*'/api/exercise/log?:userId/:from?/:to?/:limit?'*/'/api/exercise/log/:userId', (req, res) => {
+  modelUser.findOne({_id: req.params.userId}, (err, result) => {
     if (err) {
       res.send("Error contacting database")
     } else if (!result){
       res.send("userId not found")
     } else {
-      res.send({username: result.username, _id: result.id, exerciseData: result.exerciseData, count:result.exerciseData.length})
+      let data = result.exerciseData
+      var fromDate = req.query.from
+      var toDate = req.query.to
+      var limit = Number (req.query.limit)
+      //var dateFormat = /^\d{4}-\d{2}-\d{2}$/
+      var utcDate = new Date(fromDate)
+      var correctDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000).toDateString()
+      var utcToDate = new Date(toDate)
+      var toCorrectDate = new Date(utcToDate.getTime() + utcToDate.getTimezoneOffset() * 60000).toDateString()
+      //Check if optional parameters are defined.
+      if (dateFormat.test(fromDate)) {
+      //Need to convert dates to unix time in order to compare.
+       //For some reason this gives me greater than or equal to...
+       data = data.filter((item)=>(new Date(item.date).getTime() > utcDate.getTime()))
+      }
+      if (dateFormat.test(toDate)) {
+        //I had to add a day onto the utcToDate
+       data = data.filter((item)=>(new Date(item.date).getTime() < (utcToDate.getTime())  + 86400000))
+      }
+      if (!isNaN(limit) && data.length > limit) {
+        data = data.slice(0, limit)
+      } 
+      res.send({username: result.username, _id: result.id, exerciseData: data, count:data.length})
     }
   })
 })
